@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pdfplumber
+pymupdf
+nltk
+spacy
+pinecone-client
+faiss-cpu
+openai
+scikit-learn
+langchain
+pyyaml
+pytest

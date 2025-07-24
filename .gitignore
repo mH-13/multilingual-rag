@@ -1,1 +1,7 @@
 .venv/
+config.yaml
+venv
+__pycache__/
+*.pyc
+
+
