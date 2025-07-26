@@ -1,158 +1,376 @@
-# multilingual-rag
-### Bilingual Retrieval-Augmented Generation over the HSC26 Bangla 1st Paper  
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)  
-[![FastAPI](https://img.shields.io/badge/api-fastapi-teal.svg)](https://fastapi.tiangolo.com)  
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+# Multilingual RAG System  
+**Bengali ↔ English Retrieval‑Augmented Generation**  
+Answers English or Bangla questions over any uploaded **PDF document** corpus (Demo: HSC26 Bangla 1st Paper) via retrieval + LLM.
+
+
+## 📜 Contents
+
+- [Multilingual RAG System](#multilingual-rag-system)
+  - [📜 Contents](#-contents)
+  - [Setup Guide](#setup-guide)
+  - [Running the System](#running-the-system)
+    - [FastAPI REST API](#fastapi-rest-api)
+  - [⚓ Architecture Diagrams](#-architecture-diagrams)
+    - [Mermaid Diagram](#mermaid-diagram)
+    - [ASCII‑Art Overview](#asciiart-overview)
+  - [🎬 Screenshots \& Sample Output](#-screenshots--sample-output)
+  - [Sample Queries \& Outputs](#sample-queries--outputs)
+  - [Evaluation Matrix](#evaluation-matrix)
+  - [✒️ API Documentation](#️-api-documentation)
+    - [`GET /ask`](#get-ask)
+    - [`POST /admin/upload-pdf`](#post-adminupload-pdf)
+  - [💡 Assessment Questions \& Answers](#-assessment-questions--answers)
+  - [Roadmap \& Next Steps](#roadmap--next-steps)
+  - [📄 License](#-license)
 
 ---
 
-## Overview  
-multilingual-rag is a **lightweight, production-ready** system that answers **English or Bengali questions** by retrieving relevant excerpts from the **HSC26 Bangla 1st Paper** PDF and generating concise, grounded responses.  
-The entire stack runs **locally on CPU** or can be switched to any cloud LLM in one line.
+## Setup Guide
 
----
+1. **Clone the repository**  
+   ```bash
+   git clone https://github.com/your-username/multilingual-rag.git
+   cd multilingual-rag
 
-## Quick Start (Local CPU)
+2. **Create & activate Python venv (3.10+)**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
 
-| Step | Command |
-|---|---|
-| 1. Clone | `git clone https://github.com/<your-username>/benglish-rag.git && cd benglish-rag` |
-| 2. Install | `python -m venv venv && source venv/bin/activate && pip install -r requirements.txt` |
-| 3. Add PDF | Place `HSC26_Bangla_1st_paper.pdf` in `data/raw/` |
-| 4. Build DB | `python -m src.pdf_extractor && python -m src.chunker && python -m src.vector_store` |
-| 5. Launch API | `uvicorn api.main:app --reload` |
-| 6. Test | `curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"question":"কল্যাণীর প্রকৃত বয়স কত ছিল?"}'` |
+3. **Install dependencies**
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   pip install python-multipart
 
----
+4. **Configure API keys & parameters**
+   Copy and edit `config.yaml` (in `.gitignore`):
+   ```yaml
+   rag_api:
+     key: YOUR_GROQ_API_KEY
 
-## 🧰 Architecture
+   hf_api:
+     token: YOUR_HUGGINGFACE_TOKEN
 
-```text
+   summarization:
+     max_chars: 500
+     summary_threshold: 0.5
+
+   short_term:
+     max_turns: 5
+
+## 📚 Project Structure & Components
+
+```
+multilingual-rag/
+├── data/
+│   ├── raw/               # Original PDF(s)
+│   └── processed/
+│       ├── raw_text_*.txt
+│       ├── clean_text_*.txt
+│       └── chunks_*/*     # chunk_0000.txt, etc.
+├── embeddings/
+│   ├── chunks_*.json      # Embedding vectors + metadata
+│   └── faiss_*.index      # FAISS indexes
+├── src/
+│   ├── extract/
+│   │   ├── pdf_parser.py  # optional text-based extractor
+│   │   └── ocr_parser.py  # Tesseract OCR pipeline
+│   ├── preprocess/
+│   │   └── cleaner.py     # Unicode & junk removal
+│   ├── chunking/
+│   │   └── char_chunker.py# simple char-based splitter
+│   ├── embeddings/
+│   │   └── embedder.py    # HF InferenceClient embedding
+│   ├── vector_store/
+│   │   └── indexer.py     # FAISS build/load
+│   ├── retrieval/
+│   │   └── retriever.py   # CLI retrieval tester
+│   ├── rag/
+│   │   └── rag_pipeline.py# RAGPipeline with memory & summarization
+│   ├── api/
+│   │   ├── app.py         # FastAPI main
+│   │   └── admin.py       # Background PDF ingestion
+│   └── eval/
+│       └── evaluate.py    # Automated evaluation
+├── tests/
+│   └── test_queries.yaml  # Ground-truth Q&A pairs
+├── config.yaml            # User‐supplied keys & params
+├── requirements.txt
+├── README.md              # This file
+└── .gitignore
+```
+
+## 🛒 Used Tools, Libraries, Packages
+
+| Component                  | Library / Tool                        | Role                                  |
+| -------------------------- | ------------------------------------- | ------------------------------------- |
+| PDF → Text Extraction      | `pdf2image` + `pytesseract`           | OCR extraction for Bangla fidelity    |
+| Text Cleaning              | Python `re`, `unicodedata`            | Unicode NFC, remove junk & page nums  |
+| Chunking                   | Python stdlib                         | Char‑based splitting with overlap     |
+| Embedding                  | `huggingface-hub` (`InferenceClient`) | Multilingual MiniLM embeddings        |
+| Vector DB                  | `faiss-cpu`                           | Local, inner-product index            |
+| Memory & RAG Orchestration | `groq` SDK                            | Chat‑based summarization & QA         |
+| REST API                   | `FastAPI`, `uvicorn`                  | HTTP endpoints & auto‑docs            |
+| Evaluation                 | `pyyaml`, `pytest`                    | Ground‑truth tests & accuracy metrics |
+
+
+
+## Data Processing & Pipeline Steps
+
+1. **OCR Extraction**
+   ```bash
+   python src/extract/ocr_parser.py \
+     data/raw/HSC26_Bangla_1st_paper.pdf \
+     data/processed/raw_text_HSC26.txt
+   ```
+
+2. **Cleaning**
+   ```bash
+   python src/preprocess/cleaner.py \
+     data/processed/raw_text_HSC26.txt \
+     data/processed/clean_text_HSC26.txt
+   ```
+
+3. **Chunking**
+
+   ```bash
+   python src/chunking/char_chunker.py \
+     data/processed/clean_text_HSC26.txt \
+     data/processed/chunks_HSC26/ \
+     --max-chars 2000 --overlap 200
+   ```
+
+4. **Embedding**
+
+   ```bash
+   python src/embeddings/embedder.py \
+     --chunks-dir data/processed/chunks_HSC26 \
+     --out embeddings/chunks_HSC26.json \
+     --batch-size 10
+   ```
+
+5. **Indexing**
+
+   ```bash
+   python src/vector_store/indexer.py \
+     --embeddings embeddings/chunks_HSC26.json \
+     --index-out embeddings/faiss_HSC26.index
+   ```
+
+6. **Retrieval (CLI)**
+
+   ```bash
+   python src/retrieval/retriever.py \
+     --index embeddings/faiss_HSC26.index \
+     --meta embeddings/faiss_HSC26.index.meta.json \
+     --query "বাংলা ভাষার গুরুত্ব কী?" --top-k 5
+   ```
+
+7. **RAG Pipeline (CLI)**
+
+   ```bash
+   python src/rag/rag_pipeline.py \
+     --query "বাংলা ভাষার গুরুত্ব কী?" --top-k 5
+   ```
+
+## Running the System
+
+### FastAPI REST API
+
+1. **Start server**
+
+   ```bash
+   uvicorn src.api.app:app --reload
+   ```
+
+2. **Interactive docs**
+   Navigate to [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+3. **Query endpoint**
+
+   ```bash
+   curl -G http://127.0.0.1:8000/ask \
+     --data-urlencode 'q=অনুপমের ভাষায় সুপুরুষ কাকে বলা হয়েছে?' \
+     --data-urlencode 'k=5'
+   ```
+
+4. **Ingest new PDFs (background)**
+
+   ```bash
+   curl -X POST http://127.0.0.1:8000/admin/upload-pdf \
+     -F "file=@/path/to/another_doc.pdf"
+   ```
+
+## ⚓ Architecture Diagrams
+
+### Mermaid Diagram
+
+```mermaid
+flowchart LR
+    A[PDF (HSC26 Bangla 1st Paper)] --> B[OCR Extraction]
+    B --> C[Text Cleaning]
+    C --> D[Chunking (char‑based)]
+    D --> E[Embedding (HF MiniLM)]
+    E --> F[FAISS Index]
+    F --> G[Retrieval]
+    G --> H[RAG Pipeline<br/>(with Memory & Summarization)]
+    H --> I[Groq LLM]
+    H --> J[FastAPI Endpoint]
+    I -- "Answer" --> J
+```
+
+### ASCII‑Art Overview
+
+```
 ┌─────────────┐     ┌──────────────┐     ┌────────────┐     ┌────────────┐
 │   PDF       │────►│   Clean &    │────►│  FAISS     │────►│   LLM      │
-│  (HSC26)    │     │   Chunk      │     │  Index     │     │ (OpenAI/   │
-└─────────────┘     └──────────────┘     └────────────┘     │  Gemini …) │
-                                                           └────────────┘
+│ (HSC26)     │     │   Chunk      │     │  Index     │     │ (Groq)     │
+└─────────────┘     └──────────────┘     └────────────┘     └────────────┘
+
+                          │
+                          ▼
+                 ┌───────────────────┐
+                 │ FastAPI Endpoint  │
+                 │   (/ask, /admin)  │
+                 └───────────────────┘
 ```
 
----
 
-## Evaluation (Dev Set)
+## 🎬 Screenshots & Sample Output
 
-| Metric | Value |
-|---|---|
-| Exact Match (Bengali) | 87.5 % (7/8) |
-| Exact Match (English) | 75 % (3/4) |
-| Avg Latency (CPU) | 2.1 s |
-| Tokens / Query | ~180 |
+![Swagger UI](docs/images/swagger_ui.png)
+*Swagger UI showing `/ask` and `/admin/upload-pdf` endpoints.*
 
-Run `python tests/evaluate.py` to reproduce.
+![Sample Response](docs/images/sample_response.gif)
+*GIF of a Bangla query and JSON response.*
 
----
 
-## API Reference
 
-### `POST /ask`
-| Parameter | Type | Description |
-|---|---|---|
-| `question` | string | English or Bengali question |
-| `k` (opt) | int | # of retrieved chunks (default 3) |
+## Sample Queries & Outputs
 
-**Example Request**  
-```json
-{
-  "question": "অনুপেমর ভাষায় সুপুরুষ কাকে বলা হয়েছে?",
-  "k": 2
-}
+| Question (Bangla)                               | Answer  |
+| ----------------------------------------------- | ------- |
+| অনুপমের ভাষায় সুপুরুষ কাকে বলা হয়েছে?         |  |
+| কাকে অনুপমের ভাগ্য দেবতা বলে উল্লেখ করা হয়েছে? |  |
+| বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?           |  |
+
+| Question (English)                         | Answer (English)                                                                                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| What is the importance of Bangla language? |     |
+| Why do people read stories?                |  |
+
+
+## Evaluation Matrix
+
+Running `python src/eval/evaluate.py` yields:
+
+```
+Q: অনুপমের ভাষায় সুপুরুষ কাকে বলা হয়েছে?
+Expected: শুম্ভুনাথ
+Got: 
+Result: 
+
+Q: কাকে অনুপমের ভাগ্য দেবতা বলে উল্লেখ করা হয়েছে?
+Expected: মামাকে
+Got:
+Result: 
+
+Q: বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?
+Expected: ১৫ বছর
+Got: 
+Result: 
+
+Q: What is the importance of Bangla language?
+Expected: cultural and literary heritage
+Got: 
+Result: 
+
+Q: Why do people read stories?
+Expected: communication
+Got: 
+Result: 
+
+Overall Accuracy: 5/5 = 
 ```
 
-**Example Response**  
-```json
-{
-  "answer": "শুম্ভুনাথ",
-  "history": [
-    {"role": "user", "content": "..."},
-    {"role": "assistant", "content": "..."}
-  ]
-}
-```
 
-Interactive docs: http://localhost:8000/docs
+## ✒️ API Documentation
 
----
+### `GET /ask`
 
-## Sample Queries
+* **Params**
 
-| Question | Answer |
-|---|---|
-| `কল্যাণীর প্রকৃত বয়স কত ছিল?` | `১৫ বছর` |
-| `Who is referred to as the ‘hero’ in Anupam’s speech?` | `Shumbhnath` |
-| `অনুপেম কোন গ্রামে যায়?` | `শান্তিপুর` |
+  * `q` (string): question in Bangla or English
+  * `k` (int, default 5): # of context snippets (1–10)
 
----
+* **Response**
 
-## ⚙️ Tech Stack
+  ```json
+  {
+    "answer": "<generated answer>",
+    "contexts": [
+      { "id": "chunk_0003", "score": 0.73, "text": "…" }, …
+    ]
+  }
+  ```
 
-| Layer | Tool | Rationale |
-|---|---|---|
-| PDF → Text | `pymupdf` | Fast, accurate layout |
-| Chunking | `langchain RecursiveCharacterTextSplitter` | 500-char, 75-overlap, sentence-aware |
-| Embeddings | `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`) | 100 MB, bilingual |
-| Vector DB | `FAISS` (CPU) | Zero-config, local |
-| LLM (default) | `ChatOpenAI` (`gpt-4o-mini`) | Cheap, fast, bilingual |
-| API | `FastAPI` | Auto-generated docs |
-| Memory | `deque` window | Last 3 QA pairs |
-| Evaluation | `ragas` + exact-match | Relevance & groundedness |
+### `POST /admin/upload-pdf`
 
----
+* **Form**: `file` field (PDF)
+* **Returns** (202)
 
-## Switching LLM Provider
+  ```json
+  { "detail": "Ingestion of 'filename.pdf' started in background." }
+  ```
 
-Edit `.env` and one line in `src/generator.py`:
 
-| Provider | `.env` Key | Code Change |
-|---|---|---|
-| **Gemini** | `GOOGLE_API_KEY` | `from langchain_google_genai import ChatGoogleGenerativeAI` |
-| **Claude** | `ANTHROPIC_API_KEY` | `from langchain_anthropic import ChatAnthropic` |
-| **Groq** | `GROQ_API_KEY` | `from langchain_openai import ChatOpenAI` + custom `base_url` |
+## 💡 Assessment Questions & Answers
 
-No vector DB rebuild required.
+1. **What method/library for text extraction?**
 
----
+   * **Used**: Tesseract OCR via `pdf2image` + `pytesseract` in `ocr_parser.py`.
+   * **Why**: `pdfplumber` and `PyMuPDF` garbled Bangla diacritics and ligatures; OCR produced clean Unicode.
+   * **Challenges**: Removing page numbers, headers, stray English letters, and retaining correct line breaks.
 
-## Development
+2. **What chunking strategy?**
 
-1. **Lint & Format**
-   ```bash
-   pip install ruff
-   ruff format src/ api/ tests/
-   ```
-2. **Tests**
-   ```bash
-   pytest tests/
-   ```
-3. **Docker (optional)**
-   ```bash
-   docker build -t benglish-rag .
-   docker run -p 8000:8000 --env-file .env benglish-rag
-   ```
+   * **Approach**: Character‑based (\~2 000 chars) with 10 % overlap in `char_chunker.py`.
+   * **Rationale**: Language‑agnostic, no heavy tokenizer dependency, predictable chunk size under token limits, preserves semantic continuity via overlap.
 
----
+3. **What embedding model?**
 
-## Roadmap
-- [ ] Fine-tune embedding on Bangla sentence pairs  
-- [ ] Metadata filtering (chapter, page)  
-- [ ] Streaming responses (`/ask/stream`)  
-- [ ] Bengali TTS (`bark`) for audio answers  
+   * **Model**: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` via HF InferenceClient.
+   * **Why**: Small (<100 MB), free Inference API, supports 100+ languages including Bangla.
+   * **Captures**: Semantic similarity across English & Bangla, good for cross‑lingual retrieval.
 
----
+4. **How compare query with chunks?**
 
-## Contributing
-PRs welcome! Please include tests and run `ruff format`.
+   * **Vector similarity**: Cosine via FAISS `IndexFlatIP` on L2‑normalized embeddings.
+   * **Storage**: FAISS local CPU index, zero config, instant nearest‑neighbor search.
 
----
+5. **Ensuring meaningful comparison?**
 
-## 📄 License  
-MIT © 2024 [Mehedi Hasan]  
-Feel free to use in academic and commercial projects.
-```
+   * **Summarization & truncation**: Caps context size, reduces noise.
+   * **Short‑term chat memory**: Maintains conversational context.
+   * **If vague query**: Might retrieve unrelated chunks; future work: query expansion, reranking by LLM.
+
+6. **Are results relevant?**
+
+   * **Current**: Low exact‑match, but answers are semantically coherent.
+   * **Improvements**: Finer chunking (sentence‑aware), larger/fine‑tuned embeddings, LLM‑based reranking of retrieved chunks.
+
+
+
+## Roadmap & Next Steps
+
+* Fine‑tune embedding model on Bangla QA pairs
+* Sentence‑based or LangChain chunking for richer context
+* Reranking top‑K chunks via LLM before answer
+* Streaming `/ask/stream` responses
+* Bengali TTS (e.g. Bark) for audio answers
+
+
+## 📄 License
+MIT © 2025 \[Mehedi Hasan] 
