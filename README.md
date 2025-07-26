@@ -11,16 +11,15 @@ Answers English or Bangla questions over any uploaded **PDF document** corpus (D
   - [Setup Guide](#setup-guide)
   - [Running the System](#running-the-system)
     - [FastAPI REST API](#fastapi-rest-api)
-  - [⚓ Architecture Diagrams](#-architecture-diagrams)
+  - [Architecture Diagrams](#architecture-diagrams)
     - [Mermaid Diagram](#mermaid-diagram)
     - [ASCII‑Art Overview](#asciiart-overview)
-  - [🎬 Screenshots \& Sample Output](#-screenshots--sample-output)
   - [Sample Queries \& Outputs](#sample-queries--outputs)
   - [Evaluation Matrix](#evaluation-matrix)
-  - [✒️ API Documentation](#️-api-documentation)
+  - [API Documentation](#api-documentation)
     - [`GET /ask`](#get-ask)
     - [`POST /admin/upload-pdf`](#post-adminupload-pdf)
-  - [💡 Assessment Questions \& Answers](#-assessment-questions--answers)
+  - [Assessment Questions \& Answers](#assessment-questions--answers)
   - [Roadmap \& Next Steps](#roadmap--next-steps)
   - [License](#license)
 
@@ -203,7 +202,7 @@ multilingual-rag/
      -F "file=@/path/to/another_doc.pdf"
    ```
 
-## ⚓ Architecture Diagrams
+## Architecture Diagrams
 
 ### Mermaid Diagram
 
@@ -249,29 +248,18 @@ flowchart LR
                  └───────────────────┘
 ```
 
-
-## 🎬 Screenshots & Sample Output
-
-![Swagger UI](docs/images/swagger_ui.png)
-*Swagger UI showing `/ask` and `/admin/upload-pdf` endpoints.*
-
-![Sample Response](docs/images/sample_response.gif)
-*GIF of a Bangla query and JSON response.*
-
-
-
 ## Sample Queries & Outputs
 
 | Question (Bangla)                               | Answer  |
 | ----------------------------------------------- | ------- |
-| অনুপমের ভাষায় সুপুরুষ কাকে বলা হয়েছে?         |  |
-| কাকে অনুপমের ভাগ্য দেবতা বলে উল্লেখ করা হয়েছে? |  |
-| বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?           |  |
+| অনুপমের ভাষায় সুপুরুষ কাকে বলা হয়েছে?         | বিনুকে |
+| কাকে অনুপমের ভাগ্য দেবতা বলে উল্লেখ করা হয়েছে? | মামাকে |
+| বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?           | 	১১ বছর |
 
 | Question (English)                         | Answer (English)                                                                                                                 |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| What is the importance of Bangla language? |     |
-| Why do people read stories?                |  |
+| What is the importance of Bangla language? | The Bangla language plays a vital role in preserving and promoting Bengali culture, literature, and identity. |
+| Why do people read stories?                | People read stories to gain insights into human nature, explore complex issues, and reflect on their own experiences and values. |
 
 
 ## Evaluation Matrix
@@ -281,34 +269,37 @@ Running `python src/eval/evaluate.py` yields:
 ```
 Q: অনুপমের ভাষায় সুপুরুষ কাকে বলা হয়েছে?
 Expected: শুম্ভুনাথ
-Got: 
-Result: 
+Got: বিনুকে।
+Result: ✗
 
 Q: কাকে অনুপমের ভাগ্য দেবতা বলে উল্লেখ করা হয়েছে?
 Expected: মামাকে
-Got:
-Result: 
+Got: শস্তুনাথ সেনকে অনুপমের ভাগ্য দেবতা বলে উল্লেখ করা হয়েছে।
+Result: ✗
 
 Q: বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?
 Expected: ১৫ বছর
-Got: 
-Result: 
+Got: ১১ বছর।
+Result: ✗
 
 Q: What is the importance of Bangla language?
 Expected: cultural and literary heritage
-Got: 
-Result: 
+Got: The Bangla language plays a vital role…
+Result: ✗
 
 Q: Why do people read stories?
 Expected: communication
-Got: 
-Result: 
+Got: People read stories to…
+Result: ✗
 
-Overall Accuracy: 5/5 = 
+Overall Accuracy: 0/5 = 0.00%
+
+Note: I am sure that if I get proper time then I can increase the accuracy to an acceptence level. I should try better embedding and retrival method and then a good model or experiments with some models. 
+
 ```
 
 
-## ✒️ API Documentation
+## API Documentation
 
 ### `GET /ask`
 
@@ -338,7 +329,7 @@ Overall Accuracy: 5/5 =
   ```
 
 
-## 💡 Assessment Questions & Answers
+## Assessment Questions & Answers
 
 1. **What method/library for text extraction?**
 
@@ -382,6 +373,8 @@ Overall Accuracy: 5/5 =
 * Reranking top‑K chunks via LLM before answer
 * Streaming `/ask/stream` responses
 * Bengali TTS (e.g. Bark) for audio answers
+* Try out good model and good resources
+* Try out sentence based Embedding
 
 
 ## License
