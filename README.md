@@ -22,7 +22,7 @@ Answers English or Bangla questions over any uploaded **PDF document** corpus (D
     - [`POST /admin/upload-pdf`](#post-adminupload-pdf)
   - [💡 Assessment Questions \& Answers](#-assessment-questions--answers)
   - [Roadmap \& Next Steps](#roadmap--next-steps)
-  - [📄 License](#-license)
+  - [License](#license)
 
 ---
 
@@ -215,7 +215,7 @@ flowchart LR
     D --> E[Embedding (HF MiniLM)]
     E --> F[FAISS Index]
     F --> G[Retrieval]
-    G --> H[RAG Pipeline<br/>(with Memory & Summarization)]
+    G --> H[RAG Pipeline\nwith Memory & Summarization]
     H --> I[Groq LLM]
     H --> J[FastAPI Endpoint]
     I -- "Answer" --> J
@@ -372,5 +372,5 @@ Overall Accuracy: 5/5 =
 * Bengali TTS (e.g. Bark) for audio answers
 
 
-## 📄 License
+## License
 MIT © 2025 \[Mehedi Hasan] 
