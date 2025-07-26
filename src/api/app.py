@@ -2,17 +2,22 @@
 
 from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
+
+from src.api.admin import router as admin_router
+
 from src.rag.rag_pipeline import RAGPipeline
 from fastapi.responses import RedirectResponse
 
 
 
 app = FastAPI(
-    title="Multilingual RAG API",
+    title="Multilingual RAG API - Polyglot",
     version="0.1",
     description="Retrieve & generate answers over a Bangla/English corpus"
 )
 
+# Include admin endpoints
+app.include_router(admin_router)
 
 @app.get("/", include_in_schema=False)
 def root():
