@@ -209,16 +209,28 @@ multilingual-rag/
 
 ```mermaid
 flowchart LR
-    A[PDF (HSC26 Bangla 1st Paper)] --> B[OCR Extraction]
-    B --> C[Text Cleaning]
-    C --> D[Chunking (char‑based)]
-    D --> E[Embedding (HF MiniLM)]
-    E --> F[FAISS Index]
-    F --> G[Retrieval]
-    G --> H[RAG Pipeline\nwith Memory & Summarization]
-    H --> I[Groq LLM]
-    H --> J[FastAPI Endpoint]
-    I -- "Answer" --> J
+    %% First row
+    A(["Start"]) --> B["PDF (HSC26 Bangla 1st Paper)"]
+    B --> C["OCR Extraction"]
+    C --> D["Text Cleaning"]
+    D --> E["Chunking (char‑based)"]
+    E --> F["Embedding (HF MiniLM)"]
+
+    %% Invisible forwarder to next row
+    F -.-> G["FAISS Index"]
+    G --> H["Retrieval"]
+    H --> I["RAG Pipeline\nwith Memory & Summarization"]
+
+    %% Branch outputs
+    I --> J["Groq LLM"]
+    I --> K["FastAPI Endpoint"]
+    J -- "Answer" --> K
+
+    %% Invisible vertical links for alignment
+    B -.-> G
+    C -.-> H
+    D -.-> I
+
 ```
 
 ### ASCII‑Art Overview
